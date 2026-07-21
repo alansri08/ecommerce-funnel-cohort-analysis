@@ -17,7 +17,7 @@ Two questions a growth team would actually ask about this business:
 | # | Question | Finding |
 |---|---|---|
 | 1 | Where's the biggest funnel leak? | **Approved → Shipped**: 1,623 orders (1.63%) never get a carrier hand-off — the single biggest drop of any stage, 4x the approval-stage drop rate. |
-| 2 | Do customers come back? | **Almost never.** Only 3.12% of *all* customers ever place a second order — but ~40% of customers had under 6 months to reorder before the data cuts off. Restricting to customers with a fair 6-month window, the rate is **4.08%**. Either way, month-1 retention for any cohort is under 1%. |
+| 2 | Do customers come back? | **Almost never.** Customers with a fair 6-month window to reorder repeat at **4.08%** — the naive "3.12% of all customers" figure understates this because ~40% of customers hadn't had 6 months to reorder yet. Either way, month-1 retention for any cohort is under 1%. |
 | 3 | Does satisfaction drive repeat purchase? | **Barely.** 1-3 star first-order customers repeat at 3.07%; 4-5 star customers repeat at 3.12% — a 0.05pp gap. Service quality is not the retention lever here. |
 | 4 | Which market is strongest? | **Rio de Janeiro (RJ)**: highest repeat rate (3.40%) *and* highest average order value (R$166.85). **Paraná (PR)** is weakest on both (2.97%, R$160.78). São Paulo drives 3x the volume of any other state but has the *lowest* average order value (R$143.69). |
 
