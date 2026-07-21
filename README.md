@@ -18,7 +18,7 @@ Two questions a growth team would actually ask about this business:
 |---|---|---|
 | 1 | Where's the biggest funnel leak? | **Approved → Shipped**: 1,623 orders (1.63%) never get a carrier hand-off — the single biggest drop of any stage, 4x the approval-stage drop rate. |
 | 2 | Do customers come back? | **Almost never.** Customers with a fair 6-month window to reorder repeat at **4.08%** — the naive "3.12% of all customers" figure understates this because ~40% of customers hadn't had 6 months to reorder yet. Either way, month-1 retention for any cohort is under 1%. |
-| 3 | Does satisfaction drive repeat purchase? | **Barely.** 1-3 star first-order customers repeat at 3.07%; 4-5 star customers repeat at 3.12% — a 0.05pp gap. Service quality is not the retention lever here. |
+| 3 | Does satisfaction drive repeat purchase? | **Barely.** 1-3 star first-order customers repeat at 3.08%; 4-5 star customers repeat at 3.12% — a 0.04pp gap. Service quality is not the retention lever here. |
 | 4 | Which market is strongest? | **Rio de Janeiro (RJ)**: highest repeat rate (3.40%) *and* highest average order value (R$166.85). **Paraná (PR)** is weakest on both (2.97%, R$160.78). São Paulo drives 3x the volume of any other state but has the *lowest* average order value (R$143.69). |
 
 ## Methodology
@@ -86,6 +86,10 @@ this one stage stands out as the place to investigate first (fulfillment center
 capacity, seller stock-outs, or payment-to-fulfillment handoff delays are the
 usual suspects for this exact pattern in marketplace data).
 
+> **Estimated value at risk:** 1,623 leaked orders × R$160.99 average order
+> value (full dataset, [sql/07_funnel_leak_value_at_risk.sql](sql/07_funnel_leak_value_at_risk.sql))
+> ≈ **R$261,287.20** in order value tied to the Approved → Shipped leak.
+
 ## 2. Cohort Retention
 
 [sql/02_cohort_retention.sql](sql/02_cohort_retention.sql)
@@ -134,11 +138,11 @@ Customers are split by their **first order's** review score into 4-5 stars
 
 | Group | Customers | Repeat Customers | Repeat Purchase Rate |
 |---|---|---|---|
-| 1-3 stars (unsatisfied) | 21,887 | 672 | 3.07% |
-| 4-5 stars (satisfied) | 73,473 | 2,296 | 3.12% |
+| 1-3 stars (unsatisfied) | 21,889 | 674 | 3.08% |
+| 4-5 stars (satisfied) | 73,471 | 2,294 | 3.12% |
 
 **Satisfaction on the first order is not the retention lever.** The gap between
-happy and unhappy customers is 0.05 percentage points — statistically and
+happy and unhappy customers is 0.04 percentage points — statistically and
 practically negligible against a ~3-4% baseline. This reframes the retention
 problem: it isn't a service-quality issue that CX or logistics fixes can solve.
 It's structural — most Olist purchases are one-and-done by category, and no
@@ -185,7 +189,7 @@ market-mix problem.** Concretely:
    for fixing this stage is about the ~1,600 orders it recovers directly, not
    about retention — don't oversell it as a retention fix.
 2. **Don't fund CX/satisfaction initiatives expecting a retention lift** — the
-   4-5 vs 1-3 star gap (0.05pp) shows satisfaction isn't the retention lever in
+   4-5 vs 1-3 star gap (0.04pp) shows satisfaction isn't the retention lever in
    this marketplace. Retention gains are more likely to come from expanding
    into repeat-purchase-friendly categories (consumables, accessories) than from
    polishing the one-time furniture/appliance experience.
@@ -240,7 +244,8 @@ errors in a clean virtual environment.
 │   ├── 03_review_score_cohort.sql
 │   ├── 04_geo_segmentation.sql
 │   ├── 05_overall_repeat_rate.sql
-│   └── 06_repeat_rate_by_observation_window.sql
+│   ├── 06_repeat_rate_by_observation_window.sql
+│   └── 07_funnel_leak_value_at_risk.sql
 ├── notebooks/
 │   └── analysis.ipynb             # Runs the SQL via DuckDB, generates charts
 ├── images/                        # Exported PNG charts (embedded above)

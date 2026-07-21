@@ -5,6 +5,11 @@
 -- Note: 547 order_ids in the raw reviews file have more than one review row
 -- (202 with conflicting scores), so reviews are deduped to the most recent
 -- review per order before joining.
+-- Note: 290 customers have two orders placed at the exact same timestamp
+-- (same-second checkout, e.g. one purchase split into multiple seller
+-- shipments), so ORDER BY order_purchase_timestamp alone doesn't uniquely
+-- determine "first order" for them. order_id is added as a deterministic
+-- tiebreaker so this query returns the same result on every run.
 
 WITH reviews_deduped AS (
     SELECT order_id, review_score
@@ -32,7 +37,7 @@ orders_customers AS (
 ranked AS (
     SELECT
         *,
-        ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp) AS rn,
+        ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp, order_id) AS rn,
         COUNT(*) OVER (PARTITION BY customer_unique_id) AS total_orders
     FROM orders_customers
 ),
