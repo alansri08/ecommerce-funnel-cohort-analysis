@@ -3,6 +3,19 @@
 -- using customer_unique_id since customer_id is per-order in this dataset.
 -- For every cohort, we track what % of the original cohort placed ANY order
 -- in each subsequent month (month_number = months since first purchase).
+--
+-- Right-censoring: the raw data runs through 2018-10-17, but September
+-- (16 orders) and October 2018 (4 orders) are trailing data-collection
+-- artifacts, not real trading months (every prior month has ~6,000+
+-- orders). 2018-08-01 is therefore treated as the last complete month for
+-- observation purposes. Two columns are added so downstream consumers can
+-- correctly exclude cells/cohorts that haven't had a fair chance to show
+-- repeat behavior, instead of misreading a low retention_pct as behavior:
+--   observed_months   = full months between a cohort's start and 2018-08-01
+--   is_cell_observed  = true if this specific (cohort_month, month_number)
+--                        cell falls at or before the last complete month
+--                        (a cohort can have some valid cells and some
+--                        censored ones if it's still mid-window)
 
 WITH orders_customers AS (
     SELECT
@@ -49,7 +62,9 @@ SELECT
     r.month_number,
     cs.cohort_customers,
     r.active_customers,
-    ROUND(100.0 * r.active_customers / cs.cohort_customers, 2) AS retention_pct
+    ROUND(100.0 * r.active_customers / cs.cohort_customers, 2) AS retention_pct,
+    DATEDIFF('month', r.cohort_month, DATE '2018-08-01')       AS observed_months,
+    r.month_number <= DATEDIFF('month', r.cohort_month, DATE '2018-08-01') AS is_cell_observed
 FROM retention r
 JOIN cohort_size cs ON r.cohort_month = cs.cohort_month
 ORDER BY r.cohort_month, r.month_number;

@@ -17,7 +17,7 @@ Two questions a growth team would actually ask about this business:
 | # | Question | Finding |
 |---|---|---|
 | 1 | Where's the biggest funnel leak? | **Approved → Shipped**: 1,623 orders (1.63%) never get a carrier hand-off — the single biggest drop of any stage, 4x the approval-stage drop rate. |
-| 2 | Do customers come back? | **Almost never.** Only **3.12%** of customers (2,997 of 96,096) ever place a second order across the full 2-year dataset. Month-1 retention for any cohort is under 1%. |
+| 2 | Do customers come back? | **Almost never.** Only 3.12% of *all* customers ever place a second order — but ~40% of customers had under 6 months to reorder before the data cuts off. Restricting to customers with a fair 6-month window, the rate is **4.08%**. Either way, month-1 retention for any cohort is under 1%. |
 | 3 | Does satisfaction drive repeat purchase? | **Barely.** 1-3 star first-order customers repeat at 3.07%; 4-5 star customers repeat at 3.12% — a 0.05pp gap. Service quality is not the retention lever here. |
 | 4 | Which market is strongest? | **Rio de Janeiro (RJ)**: highest repeat rate (3.40%) *and* highest average order value (R$166.85). **Paraná (PR)** is weakest on both (2.97%, R$160.78). São Paulo drives 3x the volume of any other state but has the *lowest* average order value (R$143.69). |
 
@@ -55,6 +55,15 @@ assigning them to the wrong review-score group.
 - Cohort retention counts a customer as "retained" in a given month if they
   placed *any* order that month, not specifically their second order — this is
   the standard cohort-retention definition and is what the heatmap visualizes.
+- **Right-censoring:** the raw data runs through 2018-10-17, but September
+  (16 orders) and October 2018 (4 orders) are trailing data-collection
+  artifacts, not real trading months — every prior month has 6,000+ orders.
+  2018-08-01 is treated as the last complete month. Cohorts and cells that
+  don't have a full month's worth of "chance to reorder" before that cutoff
+  are excluded from the retention heatmap and flagged in
+  [sql/02_cohort_retention.sql](sql/02_cohort_retention.sql) via an
+  `is_cell_observed` column, rather than left in to silently understate
+  retention for recent cohorts. See Section 2 for how much this matters.
 
 ## 1. Order Funnel
 
@@ -88,18 +97,33 @@ first order (`customer_unique_id`), then for each cohort we track what % of the
 original cohort placed *any* order in each subsequent month — computed with a
 self-join plus `DATEDIFF`/`DATE_TRUNC`, not a pandas pivot. Cohorts with under
 100 customers (the first two and last two months of the dataset) are excluded
-from the heatmap as statistically noisy.
+from the heatmap as statistically noisy, and cohorts/cells without a full
+6-month window to reorder are also excluded — see the right-censoring note
+below.
 
 **Retention collapses almost immediately.** Month-1 retention across every
-cohort from 2017-01 through 2018-08 sits between **0.1% and 0.7%** — regardless
-of acquisition month, almost nobody places a second order in the following
-month. Zoomed out to the full ~2-year window, only **3.12%** of all customers
-(2,997 of 96,096) ever place a second order at all
-([sql/05_overall_repeat_rate.sql](sql/05_overall_repeat_rate.sql)).
+cohort with a full window sits between **0.1% and 0.7%** — regardless of
+acquisition month, almost nobody places a second order in the following month.
 
-This is a real structural characteristic of the Olist marketplace, not a data
-artifact — many of the categories sold (furniture, large appliances, home
-goods) are naturally one-time or low-frequency purchases.
+**Right-censoring check.** The naive "% of all customers who ever placed a
+second order" is **3.12%** (2,997 of 96,096). But ~40% of customers
+(38,586) first ordered within 6 months of the data cutoff and simply haven't
+had a fair chance to reorder yet. Splitting on observation window
+([sql/06_repeat_rate_by_observation_window.sql](sql/06_repeat_rate_by_observation_window.sql)):
+
+| Observation Window | Customers | Repeat Customers | Repeat Rate |
+|---|---|---|---|
+| 6+ months (fair window) | 57,510 | 2,347 | **4.08%** |
+| Under 6 months (censored) | 38,586 | 650 | 1.68% |
+
+The gap is large — 4.08% vs. 1.68%, roughly 2.4x — which confirms the naive
+3.12% figure understates true repeat-purchase behavior. **4.08% is the more
+defensible headline number**; 3.12% is only reported here to show the size of
+the bias. Even at 4.08%, though, the underlying story doesn't change: retention
+is very low, and this is a real structural characteristic of the Olist
+marketplace, not a data artifact — many of the categories sold (furniture,
+large appliances, home goods) are naturally one-time or low-frequency
+purchases.
 
 ## 3. Behavioral Cohort: Does Satisfaction Drive Repeat Purchase?
 
@@ -115,11 +139,16 @@ Customers are split by their **first order's** review score into 4-5 stars
 
 **Satisfaction on the first order is not the retention lever.** The gap between
 happy and unhappy customers is 0.05 percentage points — statistically and
-practically negligible against a 3.1% baseline. This reframes the retention
+practically negligible against a ~3-4% baseline. This reframes the retention
 problem: it isn't a service-quality issue that CX or logistics fixes can solve.
 It's structural — most Olist purchases are one-and-done by category, and no
 amount of delivery-experience polish will turn a mattress buyer into a repeat
 customer next month.
+
+*(Right-censoring check: unlike the headline retention number, this comparison
+isn't distorted by recency — 62.7% of the 1-3 star group and 58.9% of the 4-5
+star group had a full 6-month reorder window, so the two groups are censored
+at similar rates and the near-zero gap between them isn't an artifact.)*
 
 ## 4. Geography Segmentation
 
@@ -210,7 +239,8 @@ errors in a clean virtual environment.
 │   ├── 02_cohort_retention.sql
 │   ├── 03_review_score_cohort.sql
 │   ├── 04_geo_segmentation.sql
-│   └── 05_overall_repeat_rate.sql
+│   ├── 05_overall_repeat_rate.sql
+│   └── 06_repeat_rate_by_observation_window.sql
 ├── notebooks/
 │   └── analysis.ipynb             # Runs the SQL via DuckDB, generates charts
 ├── images/                        # Exported PNG charts (embedded above)
